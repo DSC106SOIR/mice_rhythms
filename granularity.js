@@ -127,11 +127,15 @@ const firstBandStart = Math.floor(xMin / period) * period;
 const bands = [];
 
 for (let t = firstBandStart; t < xMax; t += period) {
-    const isNight = Math.floor((t - firstBandStart) / period) % 2 === 0;
-    if (isNight) {
-        bands.push({ x0: t, x1: t + period });
+    const isDay = Math.floor((t - firstBandStart) / period) % 2 === 1;
+    if (isDay) {
+        bands.push({
+            x0: t,
+            x1: t + period
+        });
     }
 }
+
 
 chartArea.selectAll(".day-night-band")
     .data(bands)
@@ -142,8 +146,9 @@ chartArea.selectAll(".day-night-band")
     .attr("y", 0)
     .attr("width", d => xScale(d.x1 / timeMultiplier) - xScale(d.x0 / timeMultiplier))
     .attr("height", height)
-    .attr("fill", "#DCEEFF")
-    .attr("opacity", 0.25);
+    .attr("fill", "#FFFFFF")  
+    .attr("opacity", 0.2); 
+
 
 
 
