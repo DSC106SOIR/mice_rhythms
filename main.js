@@ -5,6 +5,7 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 const maxPoints = 1000;
 
 // Mapping of granularity levels to their respective CSV files
+// This helps dynamically load the correct dataset based on the selected granularity
 const fileMap = {
     minute: 'temp_minutes.csv',
     hour: 'temp_hours.csv',
@@ -13,6 +14,7 @@ const fileMap = {
 };
 
 // Mapping of granularity levels to axis labels
+// Used to update the x-axis label dynamically based on the granularity
 const labelMap = {
     minute: 'Time (minutes)',
     hour: 'Time (hours)',
@@ -21,30 +23,32 @@ const labelMap = {
 };
 
 // === Data Variables ===
-// Temperature data for different granularities
+// These variables will hold the temperature and activity data for different granularities
 let tempMinute, tempHour, temp12Hour, tempDay;
-// Activity data for different granularities
 let actMinute, actHour, act12Hour, actDay;
 
 // === Chart Dimensions ===
+// Define the dimensions of the chart, including margins for axes and labels
 const margin = { top: 40, right: 30, bottom: 50, left: 60 };
 const width = 1000 - margin.left - margin.right;
-const height = 800 - margin.top - margin.bottom;
+const height = 600 - margin.top - margin.bottom;
 
 // === SVG and Chart Area Setup ===
+// Create an SVG element and set its dimensions and responsive behavior
 const svg = d3.select("#chart")
     .append("svg")
     .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
     .attr("preserveAspectRatio", "xMidYMid meet");
 
+// Create a group element (`<g>`) for the chart area, applying margins
 const chartArea = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-// Axis groups
+// Create groups for the x-axis and y-axis
 const xAxisG = chartArea.append("g").attr("transform", `translate(0,${height})`);
 const yAxisG = chartArea.append("g");
 
-// Axis labels
+// Add labels for the x-axis and y-axis
 const xLabel = chartArea.append("text")
     .attr("x", width / 2)
     .attr("y", height + 40)
@@ -61,6 +65,7 @@ const yLabel = chartArea.append("text")
 
 /**
  * Transforms raw CSV data into a long format suitable for visualization.
+ * Each row in the CSV is expanded into multiple rows, one for each data column.
  * @param {Array} data - Raw data from the CSV file.
  * @returns {Array} Transformed data in long format.
  */
@@ -84,6 +89,7 @@ function transformToLongFormat(data) {
 
 /**
  * Determines the radius of circles based on granularity.
+ * Larger granularities (e.g., day) have larger circles for better visibility.
  * @param {string} granularity - The current granularity level.
  * @returns {number} The radius of the circles.
  */
@@ -91,26 +97,15 @@ function getRadius(granularity) {
     const radiusMap = {
         minute: 1,
         hour: 2,
-        '12hour': 3,
-        day: 4
+        '12hour': 4,
+        day: 8
     };
     return radiusMap[granularity] || 2; // Default radius is 2
 }
 
 /**
- * Determines the granularity level based on the zoom scale.
- * @param {number} scale - The current zoom scale.
- * @returns {string} The granularity level.
- */
-function getGranularity(scale) {
-    if (scale < 1.1) return "day";
-    if (scale < 1.6) return "12hour";
-    if (scale < 2.5) return "hour";
-    return "minute";
-}
-
-/**
  * Draws the chart based on the selected granularity.
+ * Updates the axes, scales, and circles in the chart.
  * @param {string} granularity - The current granularity level.
  */
 async function drawChart(granularity) {
@@ -122,10 +117,6 @@ async function drawChart(granularity) {
         day: tempDay
     }[granularity];
 
-
-    // =========================================
-    // TODO: Use this data for point vibrations
-    // =========================================
     let activityData = {
         minute: actMinute,
         hour: actHour,
@@ -133,33 +124,44 @@ async function drawChart(granularity) {
         day: actDay
     }[granularity];
 
+    // Map activity data to a lookup for fast access
+    const activityLookup = new Map(activityData.map(d => [`${d.id}-${d.time}`, d.value]));
 
-
-
-    // Reduce the number of points for minute-level data
+    // Downsample if minute-level
+    let filteredTempData = tempData;
     if (granularity === "minute") {
         const step = Math.ceil(d3.max(tempData, d => d.time) / maxPoints);
-        tempData = tempData.filter(d => d.time % step === 0);
+        filteredTempData = tempData.filter(d => d.time % step === 0);
     }
 
+    // Attach activity value to each temperature point
+    filteredTempData.forEach(d => {
+        d.activity = activityLookup.get(`${d.id}-${d.time}`) || 0;
+    });
+
+    // Granularity-based jitter scale
+    const jitterScale = {
+        minute: 0.1,
+        hour: 0.15,
+        "12hour": 0.3,
+        day: 0.4
+    }[granularity];
+
     // Define scales
-    const xExtent = d3.extent(tempData, d => d.time);
+    const xExtent = d3.extent(filteredTempData, d => d.time);
     const xPadding = (xExtent[1] - xExtent[0]) * 0.01;
     const xScale = d3.scaleLinear()
         .domain([xExtent[0] - xPadding, xExtent[1]])
         .range([0, width]);
 
     const yScale = d3.scaleLinear()
-        .domain([34, 40]) // Temperature range
+        .domain([34.5, 39.5]) // Temperature range
         .range([height, 0]);
 
     const colorScale = d => d.sex === "female" ? "#FF6F61" : "#6CA0DC"; // Color by sex
     const opacityScale = d3.scaleLinear()
-        .domain(d3.extent(tempData, d => d.value))
-        .range([0.4, 0.9]); // Opacity based on value
-
-    const shouldSpread = (granularity === "12hour" || granularity === "day");
-    const spreadAmount = shouldSpread ? (xScale(xExtent[1]) - xScale(xExtent[0])) / 100 : 0;
+        .domain(d3.extent(filteredTempData, d => d.value))
+        .range([0.2, 0.9]); // Opacity based on temperature value
 
     // Update axes
     xAxisG.transition().duration(500).call(d3.axisBottom(xScale).ticks(10));
@@ -168,37 +170,50 @@ async function drawChart(granularity) {
 
     // Bind data to circles
     const circles = chartArea.selectAll("circle")
-        .data(tempData, d => d.id + "-" + d.time);
+        .data(filteredTempData, d => d.id + "-" + d.time);
 
-    // Enter selection
-    circles.enter()
-        .append("circle")
-        .attr("cx", d => xScale(d.time) + (shouldSpread ? (Math.random() - 0.5) * spreadAmount : 0))
-        .attr("cy", d => yScale(d.value))
-        .attr("r", 0)
-        .attr("fill", d => colorScale(d))
-        .attr("opacity", 0)
-        .transition()
-        .duration(400)
-        .attr("r", getRadius(granularity))
-        .attr("opacity", d => opacityScale(d.value));
+    // Handle enter, update, and exit selections
+    circles.join(
+        enter => enter.append("circle")
+            .attr("cx", d => xScale(d.time))
+            .attr("cy", d => yScale(d.value))
+            .attr("r", 0)
+            .attr("fill", d => colorScale(d))
+            .attr("opacity", 0)
+            .call(enter => enter.transition().duration(500)
+                .attr("r", getRadius(granularity))
+                .attr("opacity", d => opacityScale(d.value))
+            ),
+        update => update
+            .transition().duration(500)
+            .attr("cx", d => xScale(d.time))
+            .attr("cy", d => yScale(d.value))
+            .attr("r", getRadius(granularity))
+            .attr("fill", d => colorScale(d))
+            .attr("opacity", d => opacityScale(d.value)),
+        exit => exit
+            .transition().duration(500)
+            .attr("opacity", 0)
+            .attr("r", 0)
+            .remove()
+    );
 
-    // Update selection
-    circles.transition()
-        .duration(400)
-        .attr("cx", d => xScale(d.time) + (shouldSpread ? (Math.random() - 0.5) * spreadAmount : 0))
-        .attr("cy", d => yScale(d.value))
-        .attr("r", getRadius(granularity))
-        .attr("fill", d => colorScale(d))
-        .attr("opacity", d => opacityScale(d.value));
+    // Clear any previous interval
+    if (window._wiggleInterval) clearInterval(window._wiggleInterval);
 
-    // Exit selection
-    circles.exit()
-        .transition()
-        .duration(300)
-        .attr("opacity", 0)
-        .attr("r", 0)
-        .remove();
+    // Add jittering (wiggling) effect to circles
+    window._wiggleInterval = setInterval(() => {
+        chartArea.selectAll("circle")
+            .each(function(d) {
+                const jitterX = (Math.random() - 0.5) * d.activity * jitterScale;
+                const jitterY = (Math.random() - 0.5) * d.activity * jitterScale;
+
+                d._wiggleX = jitterX;
+                d._wiggleY = jitterY;
+            })
+            .attr("cx", d => xScale(d.time) + (d._wiggleX || 0))
+            .attr("cy", d => yScale(d.value) + (d._wiggleY || 0));
+    }, 100);
 }
 
 // === Load All Data Once ===
@@ -230,28 +245,14 @@ async function drawChart(granularity) {
     actDay = transformToLongFormat(actDayRaw);
 
     // Draw the initial chart with the highest granularity
-    zoom.currentGranularity = "minute";
     drawChart("minute");
 })();
 
 // === Slider for Granularity Control ===
+// Add an event listener to the slider to update the chart when the granularity changes
 const granularityLevels = ["minute", "hour", "12hour", "day"];
 const slider = document.getElementById("granularity-slider");
 slider.addEventListener("input", () => {
     const granularity = granularityLevels[slider.value];
     drawChart(granularity);
 });
-
-// === Zoom Functionality ===
-const zoom = d3.zoom()
-    .scaleExtent([1, 20])
-    .on("zoom", ({ transform }) => {
-        const newScale = transform.k;
-        const newGranularity = getGranularity(newScale);
-        if (newGranularity !== zoom.currentGranularity) {
-            zoom.currentGranularity = newGranularity;
-            drawChart(newGranularity);
-        }
-    });
-
-svg.call(zoom);

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Thermal Divergence</title>
+    <title>Mice Rhythms</title>
     <link rel="stylesheet" href="style.css" />
     <script src="main.js" type="module"></script>
 </head>
@@ -13,8 +13,16 @@
 
     <!-- Controls (slider and toggle) -->
     <div id="controls">
-        <label for="granularity-slider">Granularity:</label>
-        <input type="range" id="granularity-slider" min="0" max="3" step="1" value="0" />
+        <div id="slider-container">
+            <label for="granularity-slider">Granularity:</label>
+            <input type="range" id="granularity-slider" min="0" max="3" step="1" value="0" />
+            <div id="granularity-labels">
+                <span>Minute</span>
+                <span>Hour</span>
+                <span>12-Hour</span>
+                <span>Day</span>
+            </div>
+        </div>
 
         <div id="view-toggle">
             <label for="view-select">View:</label>
