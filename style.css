@@ -1,7 +1,8 @@
 /* === Global === */
 body {
-    font-family: 'Segoe UI', sans-serif;
-    margin: 0;
+    font: 100%/1.5 system-ui;
+    max-width: 100ch; 
+    margin-inline: max(1em, (100% - 100ch) / 2);
     background-color: #111;
     color: #eee;
     line-height: 1.6;
@@ -9,11 +10,16 @@ body {
 }
 
 h1 {
-    font-size: 2rem;
+    font-size: 400%; 
     margin-bottom: 1rem;
     color: #fefefe;
     text-align: center;
     letter-spacing: 0.5px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    line-height: 1.1;
+    text-wrap: balance;
 }
 
 /* === Chart Area === */
@@ -30,6 +36,12 @@ svg {
     width: 100%;
     height: auto;
     display: block;
+}
+
+/* === Axis Labels === */
+text {
+    fill: #eee;
+    font-size: 0.9rem;
 }
 
 /* === Controls === */
@@ -90,11 +102,4 @@ svg {
 
 .tooltip.hidden {
     display: none;
-}
-
-/* === Axis Labels === */
-text {
-    fill: #eee;
-    /* Light color for visibility */
-    font-size: 0.9rem;
 }
