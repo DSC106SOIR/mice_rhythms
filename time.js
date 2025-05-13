@@ -20,6 +20,15 @@ export function renderTime(svgParent, tempData, actData) {
         .attr("text-anchor", "middle")
         .attr("fill", "#eee")
         .text("Temperature");
+    
+        const background = svg.insert("rect", ":first-child") 
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", width)
+        .attr("height", height)
+        .attr("fill", "#000")  
+        .attr("class", "background");
+    
 
     const margin = { top: 30, right: 80, bottom: 30, left: 60 };
 
@@ -49,6 +58,8 @@ export function renderTime(svgParent, tempData, actData) {
         .attr("y1", sliderScale.range()[1])
         .attr("y2", sliderScale.range()[0])
         .attr("stroke", "#999");
+    
+    
 
     const handle = slider.append("circle")
         .attr("r", 8)
@@ -75,6 +86,11 @@ export function renderTime(svgParent, tempData, actData) {
     function updatePlot(time) {
         handle.attr("cy", sliderScale(time));
         timeText.text(formatTimeLabel(time));
+
+        const timeInDay = time % 1440;
+        const isDaytime = timeInDay >= 720 && timeInDay < 1440;
+        background.attr("fill", isDaytime ? "#FFFFFF" : "#000000")
+                .attr("opacity", isDaytime ? 0.2 : 0.0); 
 
         const points = tempData.filter(d => d.time === time);
         const female = points.filter(d => d.sex === "female").sort((a, b) => a.id.localeCompare(b.id));
