@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Thermal Divergence</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="main.js" type="module"></script>
+</head>
+
+<body>
+    <h1>Mice Rhythms</h1>
+    <p>
+        <!-- Instruction to use the visualization -->
+        Use the slider to adjust granularity or toggle the view to filter data.
+    </p>
+
+    <!-- Controls (slider and toggle) -->
+    <div id="controls">
+        <label for="granularity-slider">Granularity:</label>
+        <input type="range" id="granularity-slider" min="0" max="3" step="1" value="0" />
+
+        <div id="view-toggle">
+            <label for="view-select">View:</label>
+            <select id="view-select">
+                <option value="all">All Days</option>
+                <option value="estrus">Estrus Days</option>
+                <option value="non-estrus">Non-Estrus Days</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Placeholder for our SVG -->
+    <div id="chart"></div>
+
+    <!-- Tooltip definition -->
+    <dl id="mouse-tooltip" class="info tooltip" hidden>
+        <!-- ... -->
+    </dl>
+
+</body>
+
+</html>

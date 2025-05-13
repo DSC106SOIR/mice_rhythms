@@ -1,43 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <title>Thermal Divergence</title>
-    <link rel="stylesheet" href="style.css" />
-    <script src="main.js" type="module"></script>
+  <meta charset="UTF-8">
+  <title>Mouse Temperatures</title>
+  <style>
+    body { font-family: sans-serif; }
+    svg { border: 1px solid #ccc; }
+    .slider line { stroke: #ccc; stroke-width: 4; }
+    .slider .handle { fill: gray; }
+  </style>
 </head>
-
 <body>
-    <h1>Mice Rhythms</h1>
-    <p>
-        <!-- Instruction to use the visualization -->
-        Use the slider to adjust granularity or toggle the view to filter data.
-    </p>
+<svg width="900" height="600"></svg>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+const svg = d3.select("svg"),
+      width = +svg.attr("width"),
+      height = +svg.attr("height"),
+      margin = {top: 30, right: 80, bottom: 30, left: 50};
 
-    <!-- Controls (slider and toggle) -->
-    <div id="controls">
-        <label for="granularity-slider">Granularity:</label>
-        <input type="range" id="granularity-slider" min="0" max="3" step="1" value="0" />
+const plotHeight = (height - margin.top - margin.bottom - 60) / 2;
+const plotWidth = width - margin.left - margin.right;
 
-        <div id="view-toggle">
-            <label for="view-select">View:</label>
-            <select id="view-select">
-                <option value="all">All Days</option>
-                <option value="estrus">Estrus Days</option>
-                <option value="non-estrus">Non-Estrus Days</option>
-            </select>
-        </div>
-    </div>
+const femaleG = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+const maleG = svg.append("g").attr("transform", `translate(${margin.left},${margin.top + plotHeight + 60})`);
 
-    <!-- Placeholder for our SVG -->
-    <div id="chart"></div>
+d3.csv("data/temp_minutes.csv").then(data => {
+  const femaleKeys = Array.from({length: 13}, (_, i) => `f${i+1}`);
+  const maleKeys = Array.from({length: 13}, (_, i) => `m${i+1}`);
+  const timeSteps = data.map(d => +d.time);
 
-    <!-- Tooltip definition -->
-    <dl id="mouse-tooltip" class="info tooltip" hidden>
-        <!-- ... -->
-    </dl>
+  const xLabels = d3.range(1, 14).map(String);
 
+  const xScale = d3.scalePoint()
+    .domain(xLabels)
+    .range([0, plotWidth])
+    .padding(0.5);
+
+  const yScale = d3.scaleLinear()
+    .domain([35.5, 39])
+    .range([plotHeight, 0]);
+
+  function updatePlot(rowIndex) {
+    const row = data[rowIndex];
+
+    const femaleData = femaleKeys.map((key, i) => ({ x: (i + 1).toString(), y: +row[key] }));
+    const maleData = maleKeys.map((key, i) => ({ x: (i + 1).toString(), y: +row[key] }));
+
+    femaleG.selectAll("circle").data(femaleData)
+      .join("circle")
+      .attr("cx", d => xScale(d.x))
+      .attr("cy", d => yScale(d.y))
+      .attr("r", 6)
+      .attr("fill", "#e78ac3");
+
+    maleG.selectAll("circle").data(maleData)
+      .join("circle")
+      .attr("cx", d => xScale(d.x))
+      .attr("cy", d => yScale(d.y))
+      .attr("r", 6)
+      .attr("fill", "#8da0cb");
+
+    svg.select(".time-label").text(`Time: ${row.time}`);
+  }
+
+  // Axes & Labels
+  femaleG.append("g").call(d3.axisLeft(yScale));
+  femaleG.append("g").attr("transform", `translate(0,${plotHeight})`).call(d3.axisBottom(xScale));
+  femaleG.append("text")
+    .attr("x", plotWidth / 2)
+    .attr("y", -10)
+    .attr("text-anchor", "middle")
+    .text("Female Mice Temperatures");
+
+  maleG.append("g").call(d3.axisLeft(yScale));
+  maleG.append("g").attr("transform", `translate(0,${plotHeight})`).call(d3.axisBottom(xScale));
+  maleG.append("text")
+    .attr("x", plotWidth / 2)
+    .attr("y", -10)
+    .attr("text-anchor", "middle")
+    .text("Male Mice Temperatures");
+
+  // Vertical Time Slider (discrete)
+  const maxTime = data.length - 1;
+  const sliderScale = d3.scaleLinear()
+    .domain([0, maxTime])
+    .range([margin.top, height - margin.bottom])
+    .clamp(true);
+
+  const slider = svg.append("g")
+    .attr("class", "slider")
+    .attr("transform", `translate(${width - 40},0)`);
+
+  slider.append("line")
+    .attr("y1", sliderScale.range()[0])
+    .attr("y2", sliderScale.range()[1]);
+
+  const handle = slider.append("circle")
+    .attr("class", "handle")
+    .attr("r", 8)
+    .attr("cy", sliderScale(0));
+
+  svg.append("text")
+    .attr("class", "time-label")
+    .attr("x", width - 90)
+    .attr("y", margin.top - 10)
+    .text("Time: 1");
+
+  const drag = d3.drag()
+    .on("drag", function(event) {
+      let y = event.y;
+      y = Math.max(sliderScale.range()[0], Math.min(sliderScale.range()[1], y));
+      const t = Math.round(sliderScale.invert(y));
+      handle.attr("cy", sliderScale(t));
+      updatePlot(t);
+    });
+
+  handle.call(drag);
+
+  updatePlot(0);
+});
+</script>
 </body>
-
 </html>
