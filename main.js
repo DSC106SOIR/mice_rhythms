@@ -79,7 +79,8 @@ function transformToLongFormat(data) {
                     time,
                     value: +d[key], // Convert value to a number
                     id: key, // Identifier for the data point
-                    sex: key.startsWith("f") || key.startsWith("F") ? "female" : "male" // Determine sex
+                    sex: key.startsWith("f") || key.startsWith("F") ? "female" : "male", // Determine sex
+                    estrus: d.estrus === "True" // Convert estrus column to boolean
                 });
             }
         });
@@ -104,11 +105,12 @@ function getRadius(granularity) {
 }
 
 /**
- * Draws the chart based on the selected granularity.
+ * Draws the chart based on the selected granularity and view.
  * Updates the axes, scales, and circles in the chart.
  * @param {string} granularity - The current granularity level.
+ * @param {string} view - The current view filter ("all", "estrus", "non-estrus").
  */
-async function drawChart(granularity) {
+async function drawChart(granularity, view = "all") {
     // Select the appropriate temperature and activity data
     let tempData = {
         minute: tempMinute,
@@ -127,17 +129,26 @@ async function drawChart(granularity) {
     // Map activity data to a lookup for fast access
     const activityLookup = new Map(activityData.map(d => [`${d.id}-${d.time}`, d.value]));
 
-    // Downsample if minute-level
-    let filteredTempData = tempData;
-    if (granularity === "minute") {
-        const step = Math.ceil(d3.max(tempData, d => d.time) / maxPoints);
-        filteredTempData = tempData.filter(d => d.time % step === 0);
-    }
+    // Attach activity and computed opacity for view filtering
+    let data = tempData.map(d => {
+        const activity = activityLookup.get(`${d.id}-${d.time}`) || 0;
+        let isVisible = true;
 
-    // Attach activity value to each temperature point
-    filteredTempData.forEach(d => {
-        d.activity = activityLookup.get(`${d.id}-${d.time}`) || 0;
+        if (view === "estrus" && !d.estrus) isVisible = false;
+        if (view === "non-estrus" && d.estrus) isVisible = false;
+
+        return {
+            ...d,
+            activity,
+            _opacity: isVisible ? null : 0.1  // low opacity for dimmed points
+        };
     });
+
+    // Downsample if minute-level
+    if (granularity === "minute") {
+        const step = Math.ceil(d3.max(data, d => d.time) / maxPoints);
+        data = data.filter(d => d.time % step === 0);
+    }
 
     // Granularity-based jitter scale
     const jitterScale = {
@@ -148,7 +159,7 @@ async function drawChart(granularity) {
     }[granularity];
 
     // Define scales
-    const xExtent = d3.extent(filteredTempData, d => d.time);
+    const xExtent = d3.extent(tempData, d => d.time);
     const xPadding = (xExtent[1] - xExtent[0]) * 0.01;
     const xScale = d3.scaleLinear()
         .domain([xExtent[0] - xPadding, xExtent[1]])
@@ -160,7 +171,7 @@ async function drawChart(granularity) {
 
     const colorScale = d => d.sex === "female" ? "#FF6F61" : "#6CA0DC"; // Color by sex
     const opacityScale = d3.scaleLinear()
-        .domain(d3.extent(filteredTempData, d => d.value))
+        .domain(d3.extent(tempData, d => d.value))
         .range([0.2, 0.9]); // Opacity based on temperature value
 
     // Update axes
@@ -170,7 +181,7 @@ async function drawChart(granularity) {
 
     // Bind data to circles
     const circles = chartArea.selectAll("circle")
-        .data(filteredTempData, d => d.id + "-" + d.time);
+        .data(data, d => d.id + "-" + d.time);
 
     // Handle enter, update, and exit selections
     circles.join(
@@ -180,23 +191,20 @@ async function drawChart(granularity) {
             .attr("r", 0)
             .attr("fill", d => colorScale(d))
             .attr("opacity", 0)
-            .call(enter => enter.transition().duration(800)
+            .call(enter => enter.transition().duration(500)
                 .attr("r", getRadius(granularity))
-                .attr("opacity", d => opacityScale(d.value))
+                .attr("opacity", d => d._opacity ?? opacityScale(d.value))
             ),
         update => update
-            .transition().duration(900)
+            .transition().duration(500)
             .attr("cx", d => xScale(d.time))
             .attr("cy", d => yScale(d.value))
             .attr("r", getRadius(granularity))
             .attr("fill", d => colorScale(d))
-            .attr("opacity", d => opacityScale(d.value)),
-        exit => exit
-            .transition().duration(100)
-            .attr("opacity", 0)
-            .attr("r", 0)
-            .remove()
+            .attr("opacity", d => d._opacity ?? opacityScale(d.value)),
+        exit => exit.remove()
     );
+
 
     // Clear any previous interval
     if (window._wiggleInterval) clearInterval(window._wiggleInterval);
@@ -244,8 +252,8 @@ async function drawChart(granularity) {
     act12Hour = transformToLongFormat(actHalfRaw);
     actDay = transformToLongFormat(actDayRaw);
 
-    // Draw the initial chart with the highest granularity
-    drawChart("minute");
+    // Draw the initial chart with the highest granularity and default view
+    drawChart("minute", "all");
 })();
 
 // === Slider for Granularity Control ===
@@ -254,5 +262,15 @@ const granularityLevels = ["minute", "hour", "12hour", "day"];
 const slider = document.getElementById("granularity-slider");
 slider.addEventListener("input", () => {
     const granularity = granularityLevels[slider.value];
-    drawChart(granularity);
+    const view = document.getElementById("view-select").value;
+    drawChart(granularity, view);
+});
+
+// === View Selector for Estrus Control ===
+// Add an event listener to the view selector to update the chart when the view changes
+const viewSelect = document.getElementById("view-select");
+viewSelect.addEventListener("change", () => {
+    const view = viewSelect.value; // Get the selected view (all, estrus, non-estrus)
+    const granularity = granularityLevels[slider.value]; // Get the current granularity
+    drawChart(granularity, view); // Redraw the chart with the selected view
 });
