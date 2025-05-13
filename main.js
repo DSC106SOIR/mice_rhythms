@@ -2,7 +2,7 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 
 // === Constants ===
 // Maximum number of points to display for high granularity (minute-level data)
-const maxPoints = 1000;
+const maxPoints = 600;
 
 // Mapping of granularity levels to their respective CSV files
 // This helps dynamically load the correct dataset based on the selected granularity
@@ -95,7 +95,7 @@ function transformToLongFormat(data) {
  */
 function getRadius(granularity) {
     const radiusMap = {
-        minute: 1,
+        minute: 1.2,
         hour: 2,
         '12hour': 4,
         day: 8
@@ -180,19 +180,19 @@ async function drawChart(granularity) {
             .attr("r", 0)
             .attr("fill", d => colorScale(d))
             .attr("opacity", 0)
-            .call(enter => enter.transition().duration(500)
+            .call(enter => enter.transition().duration(800)
                 .attr("r", getRadius(granularity))
                 .attr("opacity", d => opacityScale(d.value))
             ),
         update => update
-            .transition().duration(500)
+            .transition().duration(900)
             .attr("cx", d => xScale(d.time))
             .attr("cy", d => yScale(d.value))
             .attr("r", getRadius(granularity))
             .attr("fill", d => colorScale(d))
             .attr("opacity", d => opacityScale(d.value)),
         exit => exit
-            .transition().duration(500)
+            .transition().duration(100)
             .attr("opacity", 0)
             .attr("r", 0)
             .remove()
