@@ -1,24 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Thermal Divergence</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8" />
+    <title>Thermal Divergence</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="main.js" type="module"></script>
 </head>
+
 <body>
-  <!-- Controls (buttons, toggles) -->
-  <div id="controls"></div>
+    <h1>Mice Rhythms</h1>
+    <p>
+        <!-- Instruction to use the visualization -->
+        Use the slider to adjust granularity or toggle the view to filter data.
+    </p>
 
-  <!-- Placeholder for our SVG -->
-  <div id="chart"></div>
+    <!-- Controls (slider and toggle) -->
+    <div id="controls">
+        <label for="granularity-slider">Granularity:</label>
+        <input type="range" id="granularity-slider" min="0" max="3" step="1" value="0" />
 
-  <!-- Tooltip definition -->
-  <dl id="mouse-tooltip" class="info tooltip" hidden>
-    <!-- ... -->
-  </dl>
+        <div id="view-toggle">
+            <label for="view-select">View:</label>
+            <select id="view-select">
+                <option value="all">All Days</option>
+                <option value="estrus">Estrus Days</option>
+                <option value="non-estrus">Non-Estrus Days</option>
+            </select>
+        </div>
+    </div>
 
-  <!-- D3 library + your code -->
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="main.js"></script>
+    <!-- Placeholder for our SVG -->
+    <div id="chart"></div>
+
+    <!-- Tooltip definition -->
+    <dl id="mouse-tooltip" class="info tooltip" hidden>
+        <!-- ... -->
+    </dl>
+
 </body>
+
 </html>
