@@ -1,0 +1,150 @@
+import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
+
+// Function to render the granularity chart
+export function renderGranularity({
+    granularity,
+    view = "all",
+    tempData,
+    activityData,
+    chartArea,
+    xAxisG,
+    yAxisG,
+    xLabel,
+    yLabel,
+    width,
+    height,
+    maxPoints = 600
+}) {
+    const container = document.querySelector(".chart-wrapper");
+
+    // Ensure controls are not duplicated
+    let controlsWrapper = document.getElementById("granularity-controls");
+    if (!controlsWrapper) {
+        controlsWrapper = document.createElement("div");
+        controlsWrapper.id = "granularity-controls";
+        container.prepend(controlsWrapper);
+    }
+
+    // Populate controls for granularity and view selection
+    controlsWrapper.innerHTML = `
+        <div id="slider-container">
+            <label for="granularity-slider">Granularity:</label>
+            <input type="range" id="granularity-slider" min="0" max="3" step="1" value="${["minute", "hour", "12hour", "day"].indexOf(granularity)}" />
+            <div id="granularity-labels">
+                <span>Minute</span>
+                <span>Hour</span>
+                <span>12-Hour</span>
+                <span>Day</span>
+            </div>
+        </div>
+        <div id="view-toggle" style="margin-top: 0.5em">
+            <label for="view-select">View:</label>
+            <select id="view-select">
+                <option value="all" ${view === "all" ? "selected" : ""}>All Days</option>
+                <option value="estrus" ${view === "estrus" ? "selected" : ""}>Estrus Days</option>
+                <option value="non-estrus" ${view === "non-estrus" ? "selected" : ""}>Non-Estrus Days</option>
+            </select>
+        </div>
+    `;
+
+    // Event listeners for slider and view selection
+    document.getElementById("granularity-slider").addEventListener("input", e => {
+        const granularity = ["minute", "hour", "12hour", "day"][e.target.value];
+        const view = document.getElementById("view-select").value;
+        window.drawChart("granularity", granularity, view);
+    });
+
+    document.getElementById("view-select").addEventListener("change", e => {
+        const view = e.target.value;
+        const granularity = ["minute", "hour", "12hour", "day"][document.getElementById("granularity-slider").value];
+        window.drawChart("granularity", granularity, view);
+    });
+
+    // Define scales and axes
+    const labelMap = {
+        minute: 'Time (minutes)',
+        hour: 'Time (hours)',
+        '12hour': 'Time (12-hour intervals)',
+        day: 'Time (days)'
+    };
+
+    const getRadius = g => ({ minute: 1.2, hour: 2, '12hour': 4, day: 6 }[g] || 2);
+    const jitterScale = { minute: 0.1, hour: 0.15, "12hour": 0.3, day: 0.4 }[granularity];
+
+    const activityLookup = new Map(activityData.map(d => [`${d.id}-${d.time}`, d.value]));
+
+    let data = tempData.map(d => {
+        const activity = activityLookup.get(`${d.id}-${d.time}`) || 0;
+        const isVisible = view === "estrus" ? d.estrus :
+            view === "non-estrus" ? !d.estrus : true;
+        return {
+            ...d,
+            activity,
+            _opacity: isVisible ? null : 0.1
+        };
+    });
+
+    if (granularity === "minute") {
+        const step = Math.ceil(d3.max(data, d => d.time) / maxPoints);
+        data = data.filter(d => d.time % step === 0);
+    }
+
+    const xExtent = d3.extent(tempData, d => d.time);
+    const xPadding = (xExtent[1] - xExtent[0]) * 0.01;
+    const xScale = d3.scaleLinear()
+        .domain([xExtent[0] - xPadding, xExtent[1]])
+        .range([0, width]);
+
+    const yScale = d3.scaleLinear()
+        .domain([34.5, 39.5])
+        .range([height, 0]);
+
+    const colorScale = d => d.sex === "female" ? "#FF6F61" : "#6CA0DC";
+    const opacityScale = d3.scaleLinear()
+        .domain(d3.extent(tempData, d => d.value))
+        .range([0.2, 0.9]);
+
+    // Update axes
+    xAxisG.transition().duration(500).call(d3.axisBottom(xScale).ticks(10));
+    yAxisG.transition().duration(500).call(d3.axisLeft(yScale));
+    xLabel.text(labelMap[granularity]);
+
+    // Render circles for data points
+    const circles = chartArea.selectAll("circle")
+        .data(data, d => d.id + "-" + d.time);
+
+    circles.join(
+        enter => enter.append("circle")
+            .attr("cx", d => xScale(d.time))
+            .attr("cy", d => yScale(d.value))
+            .attr("r", 0)
+            .attr("fill", d => colorScale(d))
+            .attr("opacity", 0)
+            .call(enter => enter.transition().duration(500)
+                .attr("r", getRadius(granularity))
+                .attr("opacity", d => d._opacity ?? opacityScale(d.value))
+            ),
+        update => update.transition().duration(500)
+            .attr("cx", d => xScale(d.time))
+            .attr("cy", d => yScale(d.value))
+            .attr("r", getRadius(granularity))
+            .attr("fill", d => colorScale(d))
+            .attr("opacity", d => d._opacity ?? opacityScale(d.value)),
+        exit => exit.remove()
+    );
+
+    // Add jitter effect for better visualization
+    if (window._wiggleInterval) clearInterval(window._wiggleInterval);
+
+    window._wiggleInterval = setInterval(() => {
+        chartArea.selectAll("circle")
+            .each(function (d) {
+                const jitterX = (Math.random() - 0.5) * d.activity * jitterScale;
+                const jitterY = (Math.random() - 0.5) * d.activity * jitterScale;
+                d._wiggleX = jitterX;
+                d._wiggleY = jitterY;
+            })
+            .attr("cx", d => xScale(d.time) + (d._wiggleX || 0))
+            .attr("cy", d => yScale(d.value) + (d._wiggleY || 0));
+    }, 100);
+}

@@ -11,40 +11,35 @@
 
 <body>
     <h1>Mice Rhythms</h1>
-
-    <!-- Controls (slider and toggle) -->
-    <div id="controls">
-        <div id="slider-container">
-            <label for="granularity-slider">Granularity:</label>
-            <input type="range" id="granularity-slider" min="0" max="3" step="1" value="0" />
-            <div id="granularity-labels">
-                <span>Minute</span>
-                <span>Hour</span>
-                <span>12-Hour</span>
-                <span>Day</span>
-            </div>
-        </div>
-
-        <div id="view-toggle">
-            <label for="view-select">View:</label>
-            <select id="view-select">
-                <option value="all">All Days</option>
-                <option value="estrus">Estrus Days</option>
-                <option value="non-estrus">Non-Estrus Days</option>
-            </select>
-        </div>
-    </div>
     <p>
-        <!-- Instruction to use the visualization -->
-        Use the slider to adjust granularity or toggle the view to filter data.
+        <!-- Instruction for users -->
+        Explore temperature rhythms in female and male mice using two interactive modes: 
+        <strong>Granularity</strong> and <strong>Time</strong>. 
+        <br />
+        In <em>Granularity Mode</em>, use the slider to adjust temporal resolution (Minute, Hour, 12-Hour, or Day) 
+        and filter by estrus cycle status. Hovering reveals activity-driven motion.
+        <br />
+        In <em>Time Mode</em>, drag the vertical slider to scrub through each minute of the experiment 
+        and observe per-mouse temperature changes over time, with circle size indicating activity.
     </p>
 
-    <!-- Placeholder for our SVG -->
-    <div id="chart"></div>
+    <!-- Controls for switching between granularity and time modes -->
+    <div id="controls">
+        <div id="mode-toggle" role="group" aria-label="Mode toggle">
+            <button data-mode="granularity" class="mode-btn active">Granularity</button>
+            <button data-mode="time" class="mode-btn">Time</button>
+        </div>
+    </div>
 
-    <!-- Tooltip definition -->
+    <!-- Chart containers for different visualizations -->
+    <div id="chart">
+        <div id="granularity-container" class="chart-wrapper"></div>
+        <div id="time-container"></div>
+    </div>
+
+    <!-- Tooltip for displaying additional information -->
     <dl id="mouse-tooltip" class="info tooltip" hidden>
-        <!-- ... -->
+        <!-- Tooltip content will be dynamically populated -->
     </dl>
 
 </body>
