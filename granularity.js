@@ -91,9 +91,61 @@ export function renderGranularity({
 
     const xExtent = d3.extent(tempData, d => d.time);
     const xPadding = (xExtent[1] - xExtent[0]) * 0.01;
-    const xScale = d3.scaleLinear()
-        .domain([xExtent[0] - xPadding, xExtent[1]])
-        .range([0, width]);
+
+
+    let xDomainStart = xExtent[0] - xPadding;
+    if (granularity === "12hour") {
+        xDomainStart = 0;  // let xaxis fit to (0,0)
+    }
+    if (granularity === "day") {
+        xDomainStart = 1;
+    }
+
+
+const xScale = d3.scaleLinear()
+    .domain([xDomainStart, xExtent[1]])
+    .range([0, width]);
+
+
+    // === Day/Night Background Bands ===
+// === Day/Night Background Bands ===
+// === Day/Night Background Bands ===
+chartArea.selectAll(".day-night-band").remove();
+
+const timeMultiplier = {
+  minute: 1 / 60,
+  hour: 1,
+  '12hour': 1,
+  day: 24
+}[granularity];
+
+const xMin = xExtent[0] * timeMultiplier;
+const xMax = xExtent[1] * timeMultiplier;
+const period = 12; 
+
+const firstBandStart = Math.floor(xMin / period) * period;
+const bands = [];
+
+for (let t = firstBandStart; t < xMax; t += period) {
+    const isNight = Math.floor((t - firstBandStart) / period) % 2 === 0;
+    if (isNight) {
+        bands.push({ x0: t, x1: t + period });
+    }
+}
+
+chartArea.selectAll(".day-night-band")
+    .data(bands)
+    .enter()
+    .append("rect")
+    .attr("class", "day-night-band")
+    .attr("x", d => xScale(d.x0 / timeMultiplier))
+    .attr("y", 0)
+    .attr("width", d => xScale(d.x1 / timeMultiplier) - xScale(d.x0 / timeMultiplier))
+    .attr("height", height)
+    .attr("fill", "#DCEEFF")
+    .attr("opacity", 0.25);
+
+
 
     const yScale = d3.scaleLinear()
         .domain([34.5, 39.5])
@@ -106,7 +158,12 @@ export function renderGranularity({
 
     // Update axes
     xAxisG.transition().duration(500).call(d3.axisBottom(xScale).ticks(10));
-    yAxisG.transition().duration(500).call(d3.axisLeft(yScale));
+    const yAxisX = (granularity === "day") ? xScale(1) : xScale(0);
+
+    yAxisG
+    .transition().duration(500)
+    .attr("transform", `translate(${yAxisX}, 0)`)
+    .call(d3.axisLeft(yScale));
     xLabel.text(labelMap[granularity]);
 
     // Render circles for data points
