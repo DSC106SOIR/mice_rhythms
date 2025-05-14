@@ -6,7 +6,7 @@ export function renderTime(svgParent, tempData, actData) {
 
     const width = 1000;
     const height = 650; // <- take from time-transition branch
-    const margin = { top: 30, right: 80, bottom: 30, left: 60 };
+    const margin = { top: 40, right: 80, bottom: 45, left: 70 };
     const plotHeight = (height - margin.top - margin.bottom - 60) / 2;
     const plotWidth = width - margin.left - margin.right;
 
@@ -15,32 +15,32 @@ export function renderTime(svgParent, tempData, actData) {
         .attr("preserveAspectRatio", "xMidYMid meet")
         .style("width", "100%")
         .style("height", "auto")
-        .style("user-select", "none"); 
+        .style("user-select", "none");
 
     svg.append("text")
         .attr("transform", `rotate(-90)`)
         .attr("x", -height / 2)
-        .attr("y", 10)
+        .attr("y", 18)
         .attr("text-anchor", "middle")
         .attr("fill", "#eee")
         .text("Temperature");
-    
-        const background = svg.insert("rect", ":first-child") 
+
+    const background = svg.insert("rect", ":first-child")
         .attr("x", 0)
         .attr("y", 0)
         .attr("width", width)
         .attr("height", height + 3)
-        .attr("fill", "#000")  
+        .attr("fill", "#000")
         .attr("class", "background");
-    
+
 
     svg.append("text")
         .attr("x", margin.left + plotWidth / 2)
-        .attr("y", height)
+        .attr("y", height - 7)
         .attr("text-anchor", "middle")
         .attr("fill", "#eee")
-        .text("Mouse Number");
-    
+        .text("Mouse ID");
+
 
 
 
@@ -51,14 +51,14 @@ export function renderTime(svgParent, tempData, actData) {
     const xScale = d3.scalePoint().domain(xLabels).range([0, plotWidth]).padding(0.5);
     const yExtent = d3.extent(tempData, d => d.value); // auto-range
     const yScale = d3.scaleLinear().domain(yExtent).range([plotHeight, 0]);
-    const rScale = d3.scaleLinear().domain([0, 100]).range([1.5, 12]);
+    const rScale = d3.scaleLinear().domain([0, 100]).range([3, 12]);
 
     const actLookup = new Map(actData.map(d => [`${d.id}-${d.time}`, d.value]));
     const timeSteps = Array.from(new Set(tempData.map(d => d.time))).sort((a, b) => a - b);
 
     const sliderScale = d3.scaleLinear()
         .domain(d3.extent(timeSteps))
-        .range([height - margin.bottom, margin.top]);
+        .range([height - margin.bottom, margin.top + 50]);
 
     const slider = svg.append("g")
         .attr("transform", `translate(${width - 40},0)`);
@@ -67,8 +67,8 @@ export function renderTime(svgParent, tempData, actData) {
         .attr("y1", sliderScale.range()[1])
         .attr("y2", sliderScale.range()[0])
         .attr("stroke", "#999");
-    
-    
+
+
 
     const handle = slider.append("circle")
         .attr("r", 8)
@@ -76,16 +76,21 @@ export function renderTime(svgParent, tempData, actData) {
 
     const timeText = svg.append("text")
         .attr("class", "time-label")
-        .attr("x", width - 45)
-        .attr("y", margin.top - 10)
+        .attr("x", width - 40)
+        .attr("y", margin.top + 40)  // Moved down from -10 to +20
         .attr("fill", "#eee")
         .attr("text-anchor", "end");
 
+
     // === Axes ===
     femaleG.append("g").call(d3.axisLeft(yScale));
-    femaleG.append("g").attr("transform", `translate(0,${plotHeight})`).call(d3.axisBottom(xScale));
+    femaleG.append("g")
+        .attr("transform", `translate(0,${plotHeight})`)
+        .call(d3.axisBottom(xScale).tickFormat(d => `f${d}`));
     maleG.append("g").call(d3.axisLeft(yScale));
-    maleG.append("g").attr("transform", `translate(0,${plotHeight})`).call(d3.axisBottom(xScale));
+    maleG.append("g")
+        .attr("transform", `translate(0,${plotHeight})`)
+        .call(d3.axisBottom(xScale).tickFormat(d => `m${d}`));
 
     function formatTimeLabel(t) {
         const minuteLabel = t === 1 ? "minute" : "minutes";
@@ -109,14 +114,14 @@ export function renderTime(svgParent, tempData, actData) {
         const timeInDay = time % 1440;
         const brightness = 0.5 + 0.5 * Math.sin((2 * Math.PI * timeInDay) / 1440);
 
-        const dayColor = "#1a1a40";  
-        const nightColor = "#2596be"; 
+        const dayColor = "#1a1a40";
+        const nightColor = "#2596be";
         const interpolate = d3.interpolateRgb(nightColor, dayColor);
         const backgroundColor = interpolate(brightness);
 
         background
-        .attr("fill", backgroundColor)
-        .attr("opacity", 0.3); // Already blended, no need for separate opacity
+            .attr("fill", backgroundColor)
+            .attr("opacity", 0.3); // Already blended, no need for separate opacity
 
 
         const points = tempData.filter(d => d.time === time);
@@ -241,7 +246,7 @@ export function renderTime(svgParent, tempData, actData) {
                 velocity = (lastY - event.y) * 0.01; // Calculate velocity (scaled)
                 velocity *= 0.1;
             }
-8
+            8
             currentT = t;
             updatePlot(t);
             lastY = event.y;
@@ -256,64 +261,38 @@ export function renderTime(svgParent, tempData, actData) {
 
     // === Legend ===
     const legendG = svg.append("g")
-    .attr("class", "legend")
-    .attr("transform", `translate(${width - margin.right - 820}, ${margin.top - 20})`);
+        .attr("class", "legend")
+        .attr("transform", `translate(${width - 250}, ${margin.top - 15})`);
 
-
-    // legendG.append("rect")
-    // .attr("x", -10)
-    // .attr("y", -10)
-    // .attr("width", 90)
-    // .attr("height", 30)
-    // .attr("fill", "#f0f0f0")
-    // .attr("stroke", "#999")
-    // .attr("rx", 6);
-
-    // Title
-
-    legendG.selectAll(".legend-bg")
-    .data([null])
-    .join("rect")
-    .attr("class", "legend-bg")
-    .attr("x", -10)
-    .attr("y", 8)
-    .attr("width", 220)
-    .attr("height", 65)
-    .attr("fill", "#444")
-    .attr("stroke", "#AAAAAA")
-    .attr("rx", 6);
-
-    // Female
     legendG.append("circle")
-    .attr("cx", 10)
-    .attr("cy", 22)
-    .attr("r", 6)
-    .attr("fill", "#e78ac3");
-
+        .attr("cx", 90)
+        .attr("cy", 3)
+        .attr("r", 5)
+        .attr("fill", "#e78ac3");
     legendG.append("text")
-    .attr("x", 18)
-    .attr("y", 24)
-    .text("Female")
-    .attr("font-size", "11px");
+        .attr("x", 100)
+        .attr("y", 8)
+        .text("Female")
+        .attr("font-size", "10px")
+        .attr("fill", "#eee");
 
-    // Male
     legendG.append("circle")
-    .attr("cx", 10)
-    .attr("cy", 40)
-    .attr("r", 6)
-    .attr("fill", "#8da0cb");
+        .attr("cx", 165)
+        .attr("cy", 3)
+        .attr("r", 5)
+        .attr("fill", "#8da0cb");
+    legendG.append("text")
+        .attr("x", 175)
+        .attr("y", 8)
+        .text("Male")
+        .attr("font-size", "10px")
+        .attr("fill", "#eee");
 
     legendG.append("text")
-    .attr("x", 18)
-    .attr("y", 44)
-    .text("Male")
-    .attr("font-size", "11px");
+        .attr("x", 10)
+        .attr("y", 30)
+        .text("Larger circle → higher activity")
+        .attr("font-size", "10px")
+        .attr("fill", "#eee");
 
-    // Activity hint
-    legendG.append("text")
-    .attr("x", 8)
-    .attr("y", 65)
-    .text("Size → activity")
-    .attr("font-size", "10px")
-    .attr("fill", "#444");
 }
