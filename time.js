@@ -5,18 +5,19 @@ export function renderTime(svgParent, tempData, actData) {
     container.selectAll("*").remove(); // Clear old content
 
     const width = 1000;
-    const height = 600;
+    const height = 650;
 
     const svg = container.append("svg")
         .attr("viewBox", `0 0 ${width} ${height}`)
         .attr("preserveAspectRatio", "xMidYMid meet")
         .style("width", "100%")
-        .style("height", "auto");
+        .style("height", "auto")
+        .style("user-select", "none"); 
 
     svg.append("text")
         .attr("transform", `rotate(-90)`)
         .attr("x", -height / 2)
-        .attr("y", 20)
+        .attr("y", 10)
         .attr("text-anchor", "middle")
         .attr("fill", "#eee")
         .text("Temperature");
@@ -79,18 +80,36 @@ export function renderTime(svgParent, tempData, actData) {
     maleG.append("g").attr("transform", `translate(0,${plotHeight})`).call(d3.axisBottom(xScale));
 
     function formatTimeLabel(t) {
-        const day = Math.floor((t - 1) / 1440) + 1;
-        return `${t} minute (Day ${day})`;
+        const minuteLabel = t === 1 ? "minute" : "minutes";
+        const dayNumber = Math.floor((t - 1) / 1440) + 1;
+        const timeInDay = t % 1440;
+        const isDay = timeInDay >= 720 && timeInDay < 1440;
+        const phase = isDay ? "Day" : "Night";
+
+        const isEstrusDay = [2, 6, 10, 14].includes(dayNumber);
+        const estrusLabel = isEstrusDay ? " – estrus day" : "";
+
+        return `${t} ${minuteLabel} (${phase} ${dayNumber}${estrusLabel})`;
     }
+
+
 
     function updatePlot(time) {
         handle.attr("cy", sliderScale(time));
         timeText.text(formatTimeLabel(time));
 
         const timeInDay = time % 1440;
-        const isDaytime = timeInDay >= 720 && timeInDay < 1440;
-        background.attr("fill", isDaytime ? "#FFFFFF" : "#000000")
-                .attr("opacity", isDaytime ? 0.2 : 0.0); 
+        const brightness = 0.5 + 0.5 * Math.sin((2 * Math.PI * timeInDay) / 1440);
+
+        const dayColor = "#1a1a40";  
+        const nightColor = "#2596be"; 
+        const interpolate = d3.interpolateRgb(nightColor, dayColor);
+        const backgroundColor = interpolate(brightness);
+
+        background
+        .attr("fill", backgroundColor)
+        .attr("opacity", 0.3); // Already blended, no need for separate opacity
+
 
         const points = tempData.filter(d => d.time === time);
         const female = points.filter(d => d.sex === "female").sort((a, b) => a.id.localeCompare(b.id));
@@ -121,13 +140,109 @@ export function renderTime(svgParent, tempData, actData) {
             .attr("cy", d => yScale(d.temp))
             .attr("r", d => rScale(d.activity))
             .attr("fill", "#8da0cb");
+
+        // === Compute mean and draw horizontal lines ===
+        const femaleMean = d3.mean(fData, d => d.temp);
+        const maleMean = d3.mean(mData, d => d.temp);
+
+        // Draw horizontal line for female mean
+        femaleG.selectAll(".mean-line").data([femaleMean])
+            .join("line")
+            .attr("class", "mean-line")
+            .attr("x1", 0)
+            .attr("x2", plotWidth)
+            .attr("y1", d => yScale(d))
+            .attr("y2", d => yScale(d))
+            .attr("stroke", "#e78ac3")
+            .attr("stroke-width", 1.5)
+            .attr("stroke-dasharray", "4,2")
+            .attr("opacity", 0.5);
+
+        // Draw text label for female mean
+        femaleG.selectAll(".mean-label").data([femaleMean])
+            .join("text")
+            .attr("class", "mean-label")
+            .attr("x", plotWidth - 5)
+            .attr("y", d => yScale(d) - 5)
+            .attr("text-anchor", "end")
+            .attr("fill", "#e78ac3")
+            .attr("font-size", "0.8rem")
+            .attr("opacity", 0.6)
+            .text(d => `Mean: ${d.toFixed(2)}°C`);
+
+        // Draw horizontal line for male mean
+        maleG.selectAll(".mean-line").data([maleMean])
+            .join("line")
+            .attr("class", "mean-line")
+            .attr("x1", 0)
+            .attr("x2", plotWidth)
+            .attr("y1", d => yScale(d))
+            .attr("y2", d => yScale(d))
+            .attr("stroke", "#8da0cb")
+            .attr("stroke-width", 1.5)
+            .attr("stroke-dasharray", "4,2")
+            .attr("opacity", 0.5);
+
+        // Draw text label for male mean
+        maleG.selectAll(".mean-label").data([maleMean])
+            .join("text")
+            .attr("class", "mean-label")
+            .attr("x", plotWidth - 5)
+            .attr("y", d => yScale(d) - 5)
+            .attr("text-anchor", "end")
+            .attr("fill", "#8da0cb")
+            .attr("font-size", "0.8rem")
+            .attr("opacity", 0.6)
+            .text(d => `Mean: ${d.toFixed(2)}°C`);
+
     }
 
-    handle.call(d3.drag().on("drag", event => {
-        const y = Math.max(sliderScale.range()[1], Math.min(sliderScale.range()[0], event.y));
-        const t = Math.round(sliderScale.invert(y));
-        updatePlot(t);
-    }));
+    let lastY = null;
+    let velocity = 0;
+    let animationId = null;
+    let currentT = timeSteps[0];
+
+    function clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+    }
+
+    function animateMomentum() {
+        velocity *= 0.95; // Friction
+        if (Math.abs(velocity) < 0.1) {
+            cancelAnimationFrame(animationId);
+            return;
+        }
+
+        const newTime = clamp(currentT + velocity, timeSteps[0], timeSteps[timeSteps.length - 1]);
+        currentT = Math.round(newTime);
+        updatePlot(currentT);
+        animationId = requestAnimationFrame(animateMomentum);
+    }
+
+    handle.call(d3.drag()
+        .on("start", () => {
+            if (animationId) cancelAnimationFrame(animationId);
+            velocity = 0;
+            lastY = null;
+        })
+        .on("drag", event => {
+            const y = clamp(event.y, sliderScale.range()[1], sliderScale.range()[0]);
+            const t = Math.round(sliderScale.invert(y));
+
+            if (lastY !== null) {
+                velocity = (lastY - event.y) * 0.01; // Calculate velocity (scaled)
+                velocity *= 0.1;
+            }
+8
+            currentT = t;
+            updatePlot(t);
+            lastY = event.y;
+        })
+        .on("end", () => {
+            lastY = null;
+            animationId = requestAnimationFrame(animateMomentum);
+        })
+    );
 
     updatePlot(timeSteps[0]);
 }
