@@ -209,4 +209,65 @@ chartArea.selectAll(".day-night-band")
             .attr("cx", d => xScale(d.time) + (d._wiggleX || 0))
             .attr("cy", d => yScale(d.value) + (d._wiggleY || 0));
     }, 100);
+
+    // === Legend Setup ===
+    const legendG = d3.select(".chart-wrapper svg")
+    .selectAll(".activity-legend")
+    .data([null])
+    .join("g")
+    .attr("class", "activity-legend")
+    .attr("transform", `translate(${width - 150}, 30)`); // top-right
+
+    // Legend Title
+    legendG.append("text")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("fill", "#f9f9f9")
+    .text("Legend")
+    .attr("font-weight", "bold");
+
+    legendG.selectAll(".legend-bg")
+    .data([null])
+    .join("rect")
+    .attr("class", "legend-bg")
+    .attr("x", -10)
+    .attr("y", -10)
+    .attr("width", 220)
+    .attr("height", 100)
+    .attr("fill", "#444")
+    .attr("stroke", "#AAAAAA")
+    .attr("rx", 6);
+
+
+    // Color scale: Female / Male
+    const sexes = [
+    { label: "Female", color: "#FF6F61" },
+    { label: "Male", color: "#6CA0DC" }
+    ];
+
+    legendG.selectAll(".sex")
+    .data(sexes)
+    .join("g")
+    .attr("fill", "#f9f9f9")
+    .attr("class", "sex")
+    .attr("transform", (d, i) => `translate(0, ${20 + i * 20})`)
+    .each(function (d) {
+        d3.select(this).append("circle")
+        .attr("r", 6)
+        .attr("cx", 10)
+        .attr("cy", 0)
+        .attr("fill", d.color);
+        d3.select(this).append("text")
+        .attr("x", 22)
+        .attr("y", 2)
+        .text(d.label)
+        .style("font-size", "12px");
+    });
+
+    // Activity level jitter explanation (using lines or arrows)
+    legendG.append("text")
+    .attr("x", 8)
+    .attr("y", 70)
+    .text("More jitter → higher activity")
+    .style("font-size", "12px");
 }
