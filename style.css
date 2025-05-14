@@ -96,8 +96,44 @@ text {
     flex-wrap: wrap;
     justify-content: flex-start;
     align-items: flex-end;
-    gap: 1.5rem;
+    gap: 2rem; /* increased for spacing */
     padding: 0.5rem 0.5rem 1rem;
+}
+
+
+#legend-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 14px;
+    background-color: rgba(40, 40, 40, 0.85); /* semi-transparent */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    color: #eee;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+#legend-container text {
+    fill: #ddd;
+    font-family: inherit;
+}
+
+#legend-container .legend-title {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 6px;
+    fill: #fff;
+}
+
+#legend-container .legend-dot {
+    r: 6;
+}
+
+#legend-container .legend-note {
+    font-size: 0.75rem;
+    fill: #aaa;
+    margin-top: 6px;
 }
 
 

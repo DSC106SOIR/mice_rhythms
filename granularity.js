@@ -22,10 +22,12 @@ export function renderGranularity({
     if (!controlsWrapper) {
         controlsWrapper = document.createElement("div");
         controlsWrapper.id = "granularity-controls";
+        controlsWrapper.style.display = "flex"; // force flex layout
+        controlsWrapper.style.gap = "2rem";
         container.prepend(controlsWrapper);
     }
 
-    // Populate controls for granularity and view selection
+    // Populate controls
     controlsWrapper.innerHTML = `
         <div id="slider-container">
             <label for="granularity-slider">Granularity:</label>
@@ -45,6 +47,7 @@ export function renderGranularity({
                 <option value="non-estrus" ${view === "non-estrus" ? "selected" : ""}>Non-Estrus Days</option>
             </select>
         </div>
+        <div id="legend-container"></div>
     `;
 
     // Event listeners for slider and view selection
@@ -93,67 +96,67 @@ export function renderGranularity({
     const xPadding = (xExtent[1] - xExtent[0]) * 0.01;
 
 
-    let xDomainStart = xExtent[0] - xPadding;
-    if (granularity === "12hour") {
-        xDomainStart = 0;  // let xaxis fit to (0,0)
-    }
-    if (granularity === "day") {
-        xDomainStart = 1;
-    }
+    const xDomainStart = Math.floor(xExtent[0] / 1) * 1; // or Math.floor(xExtent[0])
+    const xDomainEnd = Math.ceil(xExtent[1] / 1) * 1;
 
-
-const xScale = d3.scaleLinear()
-    .domain([xDomainStart, xExtent[1]])
-    .range([0, width]);
-
+    const xScale = d3.scaleLinear()
+        .domain([xDomainStart, xDomainEnd])
+        .range([0, width]);
+    const buffer = (xDomainEnd - xDomainStart) * 0.035;
+    xScale.domain([xDomainStart - buffer, xDomainEnd + buffer]);
 
     // === Day/Night Background Bands ===
-// === Day/Night Background Bands ===
-// === Day/Night Background Bands ===
-chartArea.selectAll(".day-night-band").remove();
+    chartArea.selectAll(".day-night-band").remove();
 
 
-if (granularity === "minute" || granularity === "hour" ){
-const timeMultiplier = {
-  minute: 1 / 60,
-  hour: 1,
-}[granularity];
+    if (granularity !== "day") {
+        const timeMultiplier = {
+            minute: 1 / 60,
+            hour: 1,
+            "12hour": 12
+        }[granularity];
 
-const xMin = xExtent[0] * timeMultiplier;
-const xMax = xExtent[1] * timeMultiplier;
-const period = 12; 
+        const xMin = xExtent[0] * timeMultiplier;
+        const xMax = xExtent[1] * timeMultiplier;
+        const period = 12;
 
-const firstBandStart = Math.floor(xMin / period) * period;
-const bands = [];
+        const firstBandStart = Math.floor(xMin / period) * period;
+        const bands = [];
 
-for (let t = firstBandStart; t < xMax; t += period) {
-    const isDay = Math.floor((t - firstBandStart) / period) % 2 === 1;
-    if (isDay) {
-        bands.push({
-            x0: t,
-            x1: t + period,
-            isDay: isDay
-            
-        });
+        const timeSet = new Set(data.filter(d => d._opacity !== 0.1).map(d => d.time));
+        for (let t = firstBandStart; t <= xMax; t += period) {
+            const isDay = Math.floor((t - firstBandStart) / period) % 2 === 1;
+
+            // Check if any time from this band exists in the visible dataset
+            const bandStart = t / timeMultiplier;
+            const bandEnd = (t + period) / timeMultiplier;
+            const hasVisiblePoints = [...timeSet].some(time => time >= bandStart && time < bandEnd);
+
+            bands.push({
+                x0: t,
+                x1: t + period,
+                isDay,
+                fill: isDay ? "#2596be" : "#1a1a40",
+                opacity: hasVisiblePoints ? (isDay ? 0.08 : 0.3) : 0.01
+            });
+        }
+
+
+
+        chartArea.selectAll(".day-night-band")
+            .data(bands)
+            .enter()
+            .append("rect")
+            .attr("class", "day-night-band")
+            .attr("x", d => xScale(d.x0 / timeMultiplier))
+            .attr("y", 0)
+            .attr("width", d => xScale(d.x1 / timeMultiplier) - xScale(d.x0 / timeMultiplier))
+            .attr("height", height)
+            .attr("fill", d => d.fill)
+            .attr("opacity", d => d.opacity)
+            .lower();
+
     }
-}
-
-
-chartArea.selectAll(".day-night-band")
-    .data(bands)
-    .enter()
-    .append("rect")
-    .attr("class", "day-night-band")
-    .attr("x", d => xScale(d.x0 / timeMultiplier))
-    .attr("y", 0)
-    .attr("width", d => xScale(d.x1 / timeMultiplier) - xScale(d.x0 / timeMultiplier))
-    .attr("height", height)
-    .attr("fill", "#FFFFFF")  
-    .attr("fill", d => d.isDay ? "#FFFFFF" : "#000000")
-    .attr("opacity", d => d.isDay ? 0.15 : 0.08);
-
-}
-
 
 
     const yScale = d3.scaleLinear()
@@ -167,21 +170,23 @@ chartArea.selectAll(".day-night-band")
 
     // Update axes
     xAxisG.transition().duration(500).call(d3.axisBottom(xScale).ticks(10));
-    const yAxisX = (granularity === "day") ? xScale(1) : xScale(0);
-
     yAxisG
-    .transition().duration(500)
-    .attr("transform", `translate(${yAxisX}, 0)`)
-    .call(d3.axisLeft(yScale));
+        .transition().duration(500)
+        .attr("transform", `translate(0, 0)`)
+        .call(d3.axisLeft(yScale));
+
     xLabel.text(labelMap[granularity]);
 
     // Render circles for data points
     const circles = chartArea.selectAll("circle")
         .data(data, d => d.id + "-" + d.time);
 
+
+    const timeShift = granularity === "12hour" ? 0.5 : 0;  // Shift by 6 to center the 12-hour intervals
+
     circles.join(
         enter => enter.append("circle")
-            .attr("cx", d => xScale(d.time))
+            .attr("cx", d => xScale(d.time + timeShift))
             .attr("cy", d => yScale(d.value))
             .attr("r", 0)
             .attr("fill", d => colorScale(d))
@@ -191,7 +196,7 @@ chartArea.selectAll(".day-night-band")
                 .attr("opacity", d => d._opacity ?? opacityScale(d.value))
             ),
         update => update.transition().duration(500)
-            .attr("cx", d => xScale(d.time))
+            .attr("cx", d => xScale(d.time + timeShift))
             .attr("cy", d => yScale(d.value))
             .attr("r", getRadius(granularity))
             .attr("fill", d => colorScale(d))
@@ -210,68 +215,77 @@ chartArea.selectAll(".day-night-band")
                 d._wiggleX = jitterX;
                 d._wiggleY = jitterY;
             })
-            .attr("cx", d => xScale(d.time) + (d._wiggleX || 0))
+            .attr("cx", d => xScale(d.time + timeShift) + (d._wiggleX || 0))
             .attr("cy", d => yScale(d.value) + (d._wiggleY || 0));
     }, 100);
 
     // === Legend Setup ===
-    const legendG = d3.select(".chart-wrapper svg")
-    .selectAll(".activity-legend")
-    .data([null])
-    .join("g")
-    .attr("class", "activity-legend")
-    .attr("transform", `translate(${width - 150}, 30)`); // top-right
-
-    // Legend Title
-    legendG.append("text")
-    .attr("x", 0)
-    .attr("y", 0)
-    .attr("fill", "#f9f9f9")
-    .text("Legend")
-    .attr("font-weight", "bold");
-
-    legendG.selectAll(".legend-bg")
-    .data([null])
-    .join("rect")
-    .attr("class", "legend-bg")
-    .attr("x", -10)
-    .attr("y", -10)
-    .attr("width", 220)
-    .attr("height", 100)
-    .attr("fill", "#444")
-    .attr("stroke", "#AAAAAA")
-    .attr("rx", 6);
+    const legendG = d3.select("#legend-container")
+        .append("svg")
+        .attr("width", 200)
+        .attr("height", 100)
+        .append("g")
+        .attr("transform", "translate(0, 10)");
 
 
     // Color scale: Female / Male
     const sexes = [
-    { label: "Female", color: "#FF6F61" },
-    { label: "Male", color: "#6CA0DC" }
+        { label: "Female", color: "#FF6F61" },
+        { label: "Male", color: "#6CA0DC" }
     ];
 
     legendG.selectAll(".sex")
-    .data(sexes)
-    .join("g")
-    .attr("fill", "#f9f9f9")
-    .attr("class", "sex")
-    .attr("transform", (d, i) => `translate(0, ${20 + i * 20})`)
-    .each(function (d) {
-        d3.select(this).append("circle")
-        .attr("r", 6)
-        .attr("cx", 10)
-        .attr("cy", 0)
-        .attr("fill", d.color);
-        d3.select(this).append("text")
-        .attr("x", 22)
-        .attr("y", 2)
-        .text(d.label)
-        .style("font-size", "12px");
-    });
+        .data(sexes)
+        .join("g")
+        .attr("fill", "#f9f9f9")
+        .attr("class", "sex")
+        .attr("transform", (d, i) => `translate(0, ${i * 18})`)
+        .each(function (d) {
+            d3.select(this).append("circle")
+                .attr("r", 6)
+                .attr("cx", 24)
+                .attr("cy", 0)
+                .attr("fill", d.color);
+            d3.select(this).append("text")
+                .attr("x", 40)
+                .attr("y", 3)
+                .text(d.label)
+                .style("font-size", "12px");
+        });
+
+    // Day/Night bands
+    const bands = [
+        { label: "Day", color: "#2596be" },
+        { label: "Night", color: "#1a1a40" }
+    ];
+
+    legendG.selectAll(".band")
+        .data(bands)
+        .join("g")
+        .attr("class", "band")
+        .attr("transform", (d, i) => `translate(0, ${40 + i * 18})`)
+        .each(function (d) {
+            d3.select(this).append("rect")
+                .attr("x", 15)
+                .attr("y", -10)
+                .attr("width", 20)
+                .attr("height", 12)
+                .attr("fill", d.color)
+                .attr("opacity", d.label === "Day" ? 0.2 : 0.5);
+
+            d3.select(this).append("text")
+                .attr("x", 40)
+                .attr("y", 0)
+                .text(d.label)
+                .style("font-size", "12px")
+                .attr("fill", "#f9f9f9");
+        });
+
 
     // Activity level jitter explanation (using lines or arrows)
     legendG.append("text")
-    .attr("x", 8)
-    .attr("y", 70)
-    .text("More jitter → higher activity")
-    .style("font-size", "12px");
+        .attr("x", 15)
+        .attr("y", 78)
+        .text("More jitter → higher activity")
+        .style("font-size", "12px");
 }
