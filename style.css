@@ -269,6 +269,25 @@ text {
   line-height: 1.6;
 }
 
+.writeup-toplink {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  background-color: #222;
+  border: 1px solid #555;
+  color: #08f;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  z-index: 999;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.writeup-toplink:hover {
+  background-color: #08f;
+  color: #fff;
+}
 
 .writeup-container {
   max-width: 900px;
