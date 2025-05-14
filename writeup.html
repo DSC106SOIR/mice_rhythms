@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Design Write-up | Mice Rhythms</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="writeup-container">
+    <h1>📘 Design Write-up</h1>
+
+    <div class="writeup-section">
+      <h2>Design Rationale</h2>
+      <div class="writeup-box">
+        <p>
+          The goal of this visualization is to support exploration of biological rhythms—particularly how body temperature and activity levels vary across sex and reproductive states in mice. 
+          Time is encoded on the X-axis, temperature on the Y-axis, and sex is distinguished using color. 
+          Jitter motion and point size reflect activity levels, while background shading indicates day versus night.
+        </p>
+        <p>
+          We introduced two main modes of interaction: 
+          <strong>Granularity Mode</strong> enables switching between minute, hour, 12-hour, and daily views with a slider, while 
+          <strong>Time Mode</strong> allows users to scrub minute-by-minute through the dataset. These dual modes provide both macro and micro-level perspectives.
+        </p>
+        <p>
+          Several visual encoding alternatives were explored, including line charts, heatmaps, and small multiples. 
+          We ultimately chose animated scatterplots with jitter because they best highlighted temporal variance and individual differences. 
+          Day/night bands were included to align mouse behavior with circadian cycles.
+        </p>
+      </div>
+    </div>
+
+    <div class="writeup-section">
+      <h2>Development Process</h2>
+      <div class="writeup-box">
+        <p>
+          The project took approximately 10–12 hours of combined development time. 
+          Early stages focused on parsing and structuring the dataset into multiple granularities. 
+          Core rendering was built with D3, followed by iterative enhancements to the interaction, layout, and mode switching logic.
+        </p>
+        <ul>
+          <li>Preprocessing the data into 8 structured JSON files (4 granularities × 2 variables)</li>
+          <li>Developing Granularity Mode with filters and axis re-scaling</li>
+          <li>Implementing Time Mode with vertical scrubber and animated transitions</li>
+          <li>Improving user experience with debounced slider updates and layout styling</li>
+          <li>Writing project documentation and cleaning up the codebase</li>
+        </ul>
+      </div>
+    </div>
+
+    <p><a href="index.html">← Back to visualization</a></p>
+  </div>
+</body>
+</html>
