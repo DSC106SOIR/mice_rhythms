@@ -217,3 +217,18 @@ text {
 .tooltip.hidden {
     display: none;
 }
+
+#story {
+  margin: 2em auto;
+  max-width: 800px;
+  padding: 1rem;
+  border-left: 4px solid #08f;
+  background-color: #1a1a1a;
+}
+#story h2 {
+  color: #08f;
+}
+#story p {
+  color: #ddd;
+  line-height: 1.6;
+}

@@ -2,6 +2,14 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 import { renderGranularity } from './granularity.js';
 import { renderTime } from './time.js';
 
+function debounce(func, delay) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
 // === Constants ===
 const maxPoints = 600; // Maximum number of points to display
 const granularityLevels = ["minute", "hour", "12hour", "day"]; // Granularity levels
@@ -123,18 +131,15 @@ window.drawChart = drawChart;
     const viewSelect = document.getElementById("view-select");
 
     // Event listeners for granularity slider and view selector
-    granularitySlider.addEventListener("input", e => {
-        if (currentMode !== "granularity") return;
-        const granularity = granularityLevels[e.target.value];
-        const view = viewSelect.value;
-        drawChart("granularity", granularity, view);
-    });
+    const debouncedUpdate = debounce((granularity, view) => {
+    drawChart("granularity", granularity, view);
+    }, 150); // 
 
-    viewSelect.addEventListener("change", e => {
-        if (currentMode !== "granularity") return;
-        const view = e.target.value;
-        const granularity = granularityLevels[granularitySlider.value];
-        drawChart("granularity", granularity, view);
+    granularitySlider.addEventListener("input", e => {
+    if (currentMode !== "granularity") return;
+    const granularity = granularityLevels[e.target.value];
+    const view = viewSelect.value;
+    debouncedUpdate(granularity, view);
     });
 
     // Event listeners for mode toggle buttons
