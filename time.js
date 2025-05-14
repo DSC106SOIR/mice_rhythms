@@ -5,7 +5,10 @@ export function renderTime(svgParent, tempData, actData) {
     container.selectAll("*").remove(); // Clear old content
 
     const width = 1000;
-    const height = 650;
+    const height = 650; // <- take from time-transition branch
+    const margin = { top: 30, right: 80, bottom: 30, left: 60 };
+    const plotHeight = (height - margin.top - margin.bottom - 60) / 2;
+    const plotWidth = width - margin.left - margin.right;
 
     const svg = container.append("svg")
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -26,15 +29,20 @@ export function renderTime(svgParent, tempData, actData) {
         .attr("x", 0)
         .attr("y", 0)
         .attr("width", width)
-        .attr("height", height)
+        .attr("height", height + 3)
         .attr("fill", "#000")  
         .attr("class", "background");
     
 
-    const margin = { top: 30, right: 80, bottom: 30, left: 60 };
+    svg.append("text")
+        .attr("x", margin.left + plotWidth / 2)
+        .attr("y", height)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#eee")
+        .text("Mouse Number");
+    
 
-    const plotHeight = (height - margin.top - margin.bottom - 60) / 2;
-    const plotWidth = width - margin.left - margin.right;
+
 
     const femaleG = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
     const maleG = svg.append("g").attr("transform", `translate(${margin.left},${margin.top + plotHeight + 60})`);
@@ -245,4 +253,67 @@ export function renderTime(svgParent, tempData, actData) {
     );
 
     updatePlot(timeSteps[0]);
+
+    // === Legend ===
+    const legendG = svg.append("g")
+    .attr("class", "legend")
+    .attr("transform", `translate(${width - margin.right - 820}, ${margin.top - 20})`);
+
+
+    // legendG.append("rect")
+    // .attr("x", -10)
+    // .attr("y", -10)
+    // .attr("width", 90)
+    // .attr("height", 30)
+    // .attr("fill", "#f0f0f0")
+    // .attr("stroke", "#999")
+    // .attr("rx", 6);
+
+    // Title
+
+    legendG.selectAll(".legend-bg")
+    .data([null])
+    .join("rect")
+    .attr("class", "legend-bg")
+    .attr("x", -10)
+    .attr("y", 8)
+    .attr("width", 220)
+    .attr("height", 65)
+    .attr("fill", "#444")
+    .attr("stroke", "#AAAAAA")
+    .attr("rx", 6);
+
+    // Female
+    legendG.append("circle")
+    .attr("cx", 10)
+    .attr("cy", 22)
+    .attr("r", 6)
+    .attr("fill", "#e78ac3");
+
+    legendG.append("text")
+    .attr("x", 18)
+    .attr("y", 24)
+    .text("Female")
+    .attr("font-size", "11px");
+
+    // Male
+    legendG.append("circle")
+    .attr("cx", 10)
+    .attr("cy", 40)
+    .attr("r", 6)
+    .attr("fill", "#8da0cb");
+
+    legendG.append("text")
+    .attr("x", 18)
+    .attr("y", 44)
+    .text("Male")
+    .attr("font-size", "11px");
+
+    // Activity hint
+    legendG.append("text")
+    .attr("x", 8)
+    .attr("y", 65)
+    .text("Size → activity")
+    .attr("font-size", "10px")
+    .attr("fill", "#444");
 }
