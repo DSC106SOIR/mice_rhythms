@@ -1,85 +1,104 @@
-# 🐭 Mice Rhythms: Exploring Temperature & Activity Patterns
+# 🐭 Mice Rhythms: Exploring Temperature & Activity Patterns  
 **Team SOIR** (Son, Owen, Ishita, Ryota)  
 DSC 106 — Interactive Visualization
 
 ---
 
-## Main idea:
+## 💡 Main Idea
 
-Mice Rhythms is an interactive data visualization project built to explore rhythmic temperature patterns in female and male mice, with additional context from their activity levels and estrus cycle status. The project is designed to help users visually uncover patterns in biological rhythms, day/night cycles, and hormone-related variations across different time granularities.
+**Mice Rhythms** is an interactive data visualization project designed to explore rhythmic body temperature patterns in female and male mice, incorporating contextual information from their activity levels and estrus cycle status. The project helps users visually uncover patterns related to **biological rhythms**, **day/night cycles**, and **hormonal variations** across different time granularities.
 
 ---
 
-## Central Question
+## ❓ Central Question
 
 > **How do body temperature rhythms differ between male and female mice over time, in relation to circadian light cycles and the female estrus cycle?**
 
 ---
 
-## Visual Encoding Design (Marks + Channels)
+## 🎨 Visual Encoding (Marks & Channels)
 
-| Variable        | Visual Encoding                             |
-|----------------|----------------------------------------------|
-| **Time**        | X-axis                                       |
-| **Temperature** | Y-axis                                       |
-| **Sex**         | Color (e.g., Coral for Female, Blue for Male)|
-| **Activity**    | Jitter intensity (how much point "wiggles")  |
-| **Temperature** | Brightness / opacity of the point            |
-| **Day/Night**   | Background shade (darker = night, lighter = day) |
-| **Estrus**      | Filter to toggle between estrus / non-estrus / all |
+| Variable             | Visual Encoding                                           |
+|----------------------|------------------------------------------------------------|
+| **Time**             | X-axis in Granularity Mode; vertical scrubber in Time Mode |
+| **Temperature**      | Y-axis                                                     |
+| **Sex**              | Color (Coral for Female, Blue for Male)                    |
+| **Activity**         | Jitter intensity (wiggling motion of circles)              |
+| **Temperature**      | Brightness / Opacity of circles                            |
+| **Day/Night**        | Background shading (dark = night, light = day)             |
+| **Estrus**           | Filter toggle: Estrus / Non-Estrus / All                   |
+| **Time Scrubber**    | Vertical slider in Time Mode                               |
+| **Granularity Slider** | Horizontal slider in Granularity Mode                   |
 
 ---
 
-## Dataset
+## 📊 Dataset
 
-### Raw data
+### 🔹 Raw Data
 
-- 20160 rows = 14 days × 1440 minutes
-- Datasets:
-  - `female_temp.csv`
-  - `female_act.csv`
-  - `male_temp.csv`
-  - `male_act.csv`
-- Time = row index (minutes since start)
-- Estrus occurs every 4 days, starting from Day 2 (Days 2, 6, 10, 14)
+- 14 days × 1440 minutes = **20,160 time points**
+- Four files:  
+  - `female_temp.csv`  
+  - `female_act.csv`  
+  - `male_temp.csv`  
+  - `male_act.csv`  
+- Time = minute index since start  
+- Estrus occurs on Days 2, 6, 10, and 14
 
-### Processed data
+---
 
-From the raw temperature and activity files, we created **eight processed datasets** that support zoomable interaction and efficient rendering. Each variable (temperature, activity) is aggregated at four levels of granularity: minute, hour, 12-hour (half-day), and day.
+### 🔹 Processed Data
 
-| Filename              | Description                                          |
-|-----------------------|------------------------------------------------------|
-| `temp_minutes.csv`    | Raw minute-level temperature data (20160 rows)       |
-| `temp_hours.csv`      | Hourly-aggregated temperature data (336 rows)        |
-| `temp_halfdays.csv`   | 12-hour-aggregated temperature data (28 rows)        |
-| `temp_days.csv`       | Daily-aggregated temperature data (14 rows)          |
-| `act_minutes.csv`     | Raw minute-level activity data (20160 rows)          |
-| `act_hours.csv`       | Hourly-aggregated activity data (336 rows)           |
-| `act_halfdays.csv`    | 12-hour-aggregated activity data (28 rows)           |
-| `act_days.csv`        | Daily-aggregated activity data (14 rows)             |
+To support smooth interaction, we pre-aggregated the raw data into four levels of granularity for both temperature and activity:
+
+| File                | Granularity        | Rows |
+|---------------------|--------------------|------|
+| `temp_minutes.csv`  | Minute             | 20160 |
+| `temp_hours.csv`    | Hour               | 336   |
+| `temp_halfdays.csv` | 12-Hour (Half-Day) | 28    |
+| `temp_days.csv`     | Day                | 14    |
+| `act_minutes.csv`   | Minute             | 20160 |
+| `act_hours.csv`     | Hour               | 336   |
+| `act_halfdays.csv`  | 12-Hour (Half-Day) | 28    |
+| `act_days.csv`      | Day                | 14    |
 
 Each file contains:
-- `time`: Time index (minute, hour, half-day, or day)
-- One column per mouse (e.g., `F1`, `F2`, ..., `F13` for females, `M1`, `M2`, ..., `M13` for males)
-- `estrus`: Boolean column — `True` for Days 2, 6, 10, 14 (female estrus days), `False` otherwise
+- `time`: Time index
+- Mouse columns (e.g., `F1` to `F13`, `M1` to `M13`)
+- `estrus`: Boolean (`True` on Days 2, 6, 10, 14 for females)
 
 ---
 
-## ✨ Features
-### 🔹 Two Interactive Modes
+## ✨ Key Features
 
-- Granularity Mode: Allows users to switch between four temporal resolutions — Minute, Hour, 12-Hour, and Day. You can also filter by estrus cycle status (All, Estrus, Non-Estrus).
+### 🔁 Two Interactive Modes
 
-- Time Mode: Use a vertical scrubber to navigate minute-by-minute across the timeline. Circle size reflects activity, while background shading indicates day or night.
+**Granularity Mode**
+- Switch between Minute, Hour, 12-Hour, and Day levels
+- Filter by estrus cycle (All / Estrus / Non-Estrus)
+- Explore broad and zoomed-out trends
 
-### 🔹 Smooth Visual Transitions
+**Time Mode**
+- Use a vertical **slider** to scrub minute-by-minute
+- Circle **size encodes activity**, background shows day vs. night
 
-- Debounced slider interactions make transitions responsive and smooth, even at high resolutions.
+---
 
-### 🔹 Visual Enhancements
+### 🎛️ Smooth Interactions
 
-- Color-coded by sex (pink for female, blue for male)
+- **Debounced** granularity slider input reduces jitter and improves responsiveness  
+- Smooth transitions across resolutions
 
-- Jitter animation reveals how activity contributes to visible motion
+---
 
-- Day/night bands improve temporal readability
+### 🌈 Visual Design Highlights
+
+- **Color-coded** by sex (pink = female, blue = male)  
+- **Jitter animation** reveals activity variation  
+- **Day/night bands** clarify circadian phase transitions
+
+---
+
+## ✅ Summary
+
+Mice Rhythms offers an intuitive, interactive interface for exploring biological rhythms. Through thoughtful encoding and interactive design, users can investigate individual and group-level patterns related to **sex**, **activity**, **hormonal cycles**, and **circadian rhythms**.
