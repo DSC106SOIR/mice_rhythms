@@ -25,7 +25,7 @@ DSC 106 — Interactive Visualization
 | **Sex**              | Color (Coral for Female, Blue for Male)                    |
 | **Activity**         | Jitter intensity (wiggling motion of circles)              |
 | **Temperature**      | Brightness / Opacity of circles                            |
-| **Day/Night**        | Background shading (dark = day, light = night)             |
+| **Day/Night**        | Background shading (dark = night, light = day)             |
 | **Estrus**           | Filter toggle: Estrus / Non-Estrus / All                   |
 | **Time Scrubber**    | Vertical slider in Time Mode                               |
 | **Granularity Slider** | Horizontal slider in Granularity Mode                   |
