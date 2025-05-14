@@ -6,6 +6,9 @@ export function renderTime(svgParent, tempData, actData) {
 
     const width = 1000;
     const height = 600;
+        const margin = { top: 30, right: 80, bottom: 30, left: 60 };
+    const plotHeight = (height - margin.top - margin.bottom - 60) / 2;
+    const plotWidth = width - margin.left - margin.right;
 
     const svg = container.append("svg")
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -25,15 +28,20 @@ export function renderTime(svgParent, tempData, actData) {
         .attr("x", 0)
         .attr("y", 0)
         .attr("width", width)
-        .attr("height", height)
+        .attr("height", height + 3)
         .attr("fill", "#000")  
         .attr("class", "background");
     
 
-    const margin = { top: 30, right: 80, bottom: 30, left: 60 };
+    svg.append("text")
+        .attr("x", margin.left + plotWidth / 2)
+        .attr("y", height)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#eee")
+        .text("Mouse Number");
+    
 
-    const plotHeight = (height - margin.top - margin.bottom - 60) / 2;
-    const plotWidth = width - margin.left - margin.right;
+
 
     const femaleG = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
     const maleG = svg.append("g").attr("transform", `translate(${margin.left},${margin.top + plotHeight + 60})`);

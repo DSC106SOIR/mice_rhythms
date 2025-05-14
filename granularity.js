@@ -112,11 +112,11 @@ const xScale = d3.scaleLinear()
 // === Day/Night Background Bands ===
 chartArea.selectAll(".day-night-band").remove();
 
+
+if (granularity === "minute" || granularity === "hour" ){
 const timeMultiplier = {
   minute: 1 / 60,
   hour: 1,
-  '12hour': 1,
-  day: 24
 }[granularity];
 
 const xMin = xExtent[0] * timeMultiplier;
@@ -131,7 +131,9 @@ for (let t = firstBandStart; t < xMax; t += period) {
     if (isDay) {
         bands.push({
             x0: t,
-            x1: t + period
+            x1: t + period,
+            isDay: isDay
+            
         });
     }
 }
@@ -147,8 +149,10 @@ chartArea.selectAll(".day-night-band")
     .attr("width", d => xScale(d.x1 / timeMultiplier) - xScale(d.x0 / timeMultiplier))
     .attr("height", height)
     .attr("fill", "#FFFFFF")  
-    .attr("opacity", 0.2); 
+    .attr("fill", d => d.isDay ? "#FFFFFF" : "#000000")
+    .attr("opacity", d => d.isDay ? 0.15 : 0.08);
 
+}
 
 
 
